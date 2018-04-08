@@ -10,7 +10,7 @@ import java.util.Set;
 public class DataServer {
   private static final int MAX_CONNECTION = 5;
   private static int connections = 0;
-  private static Set<String> totalSet = new HashSet<>();
+  private static final Set<String> totalSet = new HashSet<>();
   private static final StatusUpdater status_updater = new StatusUpdater();
   private static LogFileWriter log_writer;
 
