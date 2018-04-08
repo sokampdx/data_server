@@ -2,6 +2,8 @@ package com.newrelic.codingchallenge;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DataServer {
   static final int MAX_CONNECTION = 5;
@@ -9,6 +11,7 @@ public class DataServer {
 
   DataServer() throws IOException {
     ServerSocket server = new ServerSocket(4000);
+    LogFileWriter.reset();
 
     while(true) {
       if (connections < MAX_CONNECTION) {
@@ -26,6 +29,8 @@ public class DataServer {
   private class AcceptClient extends Thread {
     Socket ClientSocket;
     BufferedReader din;
+    LogFileWriter logFileWriter;
+    List<String> currentList = new ArrayList<>();
 
     private BufferedReader create_client_buffer_reader(Socket client) throws IOException {
       ClientSocket = client;
@@ -41,9 +46,12 @@ public class DataServer {
       try {
         String line = din.readLine();
         while (is_valid(line)) {
+          currentList.add(line);
           System.out.println(Thread.currentThread().getId() + ":" + line);
           line = din.readLine();
         }
+
+        logFileWriter.write(currentList);
         shutdown_client();
       } catch (IOException e) {
         e.printStackTrace();
@@ -64,5 +72,27 @@ public class DataServer {
   public static void main(String[] args) throws IOException {
     System.out.println("Starting up server ....");
     DataServer dataServer = new DataServer();
+  }
+
+  private static class LogFileWriter {
+    private static final String FILENAME = "number.log";
+
+    public static void reset() throws IOException {
+      FileWriter fileWriter = new FileWriter(FILENAME);
+      fileWriter.close();
+    }
+
+    public static void write(List<String> content) throws IOException {
+      FileWriter fileWriter = new FileWriter(FILENAME, true);
+      BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+      for (String value : content) {
+        bufferedWriter.write(value);
+        bufferedWriter.newLine();
+      }
+
+      bufferedWriter.close();
+      fileWriter.close();
+    }
   }
 }
