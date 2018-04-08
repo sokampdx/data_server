@@ -31,12 +31,12 @@ public class DataClient implements Runnable {
     Random rand = new Random();
     int n = 100000000;
 
-    while(n < 1000000000) {
+    while(n < 900000000) {
         n = rand.nextInt(900000000) + 100000000;
         dout.println(n);
         System.out.println(n++);
     }
-
+    dout.println(0);
     shutdown_client();
   }
 
