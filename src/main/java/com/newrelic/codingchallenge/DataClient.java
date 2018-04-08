@@ -33,8 +33,8 @@ public class DataClient implements Runnable {
 
     while(n < 999990000) {
         n = rand.nextInt(900000000) + 100000000;
-        dout.println(n);
-        System.out.println(n++);
+        //System.out.println(n);
+        dout.println(n++);
     }
     dout.println(999999999);
     dout.println(0);
@@ -53,7 +53,7 @@ public class DataClient implements Runnable {
 
   public static void main(String[] args) throws IOException {
     System.out.println("Connecting to server ....");
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 10; ++i) {
       DataClient dataClient = new DataClient();
       try {
         Thread.sleep(500);
