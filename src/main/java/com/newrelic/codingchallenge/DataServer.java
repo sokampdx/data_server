@@ -9,13 +9,14 @@ import java.util.Set;
 
 public class DataServer {
   private static final int MAX_CONNECTION = 5;
-  private static final String TERMINATE_ALL_CONNECTION = "terminate";
   private static int connections = 0;
   private static Set<String> totalSet = new HashSet<>();
+  private static final StatusUpdater status_updater = new StatusUpdater();
+  private static LogFileWriter log_writer;
 
   DataServer() throws IOException {
     ServerSocket server = new ServerSocket(4000);
-    LogFileWriter.reset();
+    log_writer = new LogFileWriter();
 
     while(true) {
       if (connections < MAX_CONNECTION) {
@@ -25,7 +26,7 @@ public class DataServer {
   }
 
   private void create_client(ServerSocket server) throws IOException {
-    ++connections;
+    ++connections; //use threadpool
     Socket client = server.accept();
     AcceptClient acceptClient = new AcceptClient(client);
   }
@@ -33,14 +34,7 @@ public class DataServer {
   private class AcceptClient extends Thread {
     Socket ClientSocket;
     BufferedReader din;
-    List<String> currentList = new ArrayList<>();
-    Set<String> currentSet;
-    int current_duplicate = 0;
-
-    private BufferedReader create_client_buffer_reader(Socket client) throws IOException {
-      ClientSocket = client;
-      return new BufferedReader(new InputStreamReader(ClientSocket.getInputStream()));
-    }
+    List<String> currentList;
 
     AcceptClient(Socket client) throws IOException {
       din = create_client_buffer_reader(client);
@@ -49,32 +43,42 @@ public class DataServer {
 
     @Override
     public void run() {
+      currentList = new ArrayList<>();
       try {
         String line = din.readLine();
-        while (is_valid(line)) {
+
+        while (DataValidator.is_valid(line)) {
           currentList.add(line);
           //System.out.println(Thread.currentThread().getId() + ":" + line);
           line = din.readLine();
         }
 
-        if (is_terminate(line)) {
-          // TODO: terminate all connections
+        if (DataValidator.is_terminate(line)) {
+          shutdown_all();
         } else {
-
-          currentSet = new HashSet<>(currentList);
-          currentSet.removeAll(totalSet);
-          totalSet.addAll(currentSet);
-
-          LogFileWriter.write(currentSet);
-          current_duplicate = currentList.size() - currentSet.size();
-
-          System.out.println("Received " + currentSet.size() + " unique numbers, " + current_duplicate + " duplicates. Unique total: " + totalSet.size());
+          process_client_data(currentList);
         }
 
         shutdown_client();
       } catch (IOException e) {
         e.printStackTrace();
       }
+    }
+
+    private BufferedReader create_client_buffer_reader(Socket client) throws IOException {
+      ClientSocket = client;
+      return new BufferedReader(new InputStreamReader(ClientSocket.getInputStream()));
+    }
+
+    private void process_client_data(List<String> currentList) throws IOException {
+      Set<String> currentSet = new HashSet<>(currentList);
+
+      //sychronized
+      currentSet.removeAll(totalSet);
+      totalSet.addAll(currentSet);
+
+      log_writer.write(currentSet);
+      status_updater.update_new(currentList.size() - currentSet.size(), currentSet.size());
     }
 
     private void shutdown_client() throws IOException {
@@ -84,12 +88,9 @@ public class DataServer {
     }
   }
 
-  private static boolean is_terminate(String line) {
-    return line.equals(TERMINATE_ALL_CONNECTION);
-  }
-
-  private static boolean is_valid(String line) {
-    return line != null && line.matches("\\d{9}");
+  private void shutdown_all() {
+    // TODO: terminate all connections
+    status_updater.shutdown();
   }
 
   public static void main(String[] args) throws IOException {

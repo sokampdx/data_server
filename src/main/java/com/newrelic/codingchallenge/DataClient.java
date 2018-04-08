@@ -5,11 +5,11 @@ import java.net.*;
 import java.util.Random;
 
 public class DataClient implements Runnable {
-  Socket socket;
-  PrintWriter dout;
-  BufferedReader din;
-
-  Thread thread;
+  private static final int MAX_CLIENT_ATTEMPT = 10;
+  private Socket socket;
+  private PrintWriter dout;
+  private BufferedReader din;
+  private Thread thread;
 
   DataClient() throws IOException {
     try {
@@ -31,13 +31,14 @@ public class DataClient implements Runnable {
     Random rand = new Random();
     int n = 100000000;
 
-    while(n < 999990000) {
+    while(n < 999999000) {
         n = rand.nextInt(900000000) + 100000000;
         //System.out.println(n);
         dout.println(n++);
     }
     dout.println(999999999);
     dout.println(0);
+    //dout.println(DataValidator.TERMINATE_ALL_CONNECTION);
     shutdown_client();
   }
 
@@ -53,7 +54,7 @@ public class DataClient implements Runnable {
 
   public static void main(String[] args) throws IOException {
     System.out.println("Connecting to server ....");
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < MAX_CLIENT_ATTEMPT; ++i) {
       DataClient dataClient = new DataClient();
       try {
         Thread.sleep(500);
