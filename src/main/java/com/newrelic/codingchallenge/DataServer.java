@@ -6,68 +6,58 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 
 public class DataServer {
   private static final int MAX_CONNECTION = 5;
-  private static int connections = 0;
-  private static final Set<String> totalSet = new HashSet<>();
+  private static final ExecutorService executor = Executors.newFixedThreadPool(MAX_CONNECTION);
+
   private static final StatusUpdater status_updater = new StatusUpdater();
   private static LogFileWriter log_writer;
+
+  private static final Set<String> totalSet = new HashSet<>();
 
   DataServer() throws IOException {
     ServerSocket server = new ServerSocket(4000);
     log_writer = new LogFileWriter();
 
     while(true) {
-      if (connections < MAX_CONNECTION) {
-        create_client(server);
-      }
+      executor.execute(new AcceptClient(server.accept()));
     }
   }
 
-  private void create_client(ServerSocket server) throws IOException {
-    ++connections; //use threadpool
-    Socket client = server.accept();
-    AcceptClient acceptClient = new AcceptClient(client);
-  }
-
-  private class AcceptClient extends Thread {
-    Socket ClientSocket;
-    BufferedReader din;
-    List<String> currentList;
+  private class AcceptClient implements Runnable {
+    private Socket ClientSocket;
+    private BufferedReader din;
+    private List<String> currentList;
 
     AcceptClient(Socket client) throws IOException {
-      din = create_client_buffer_reader(client);
-      start();
+      ClientSocket = client;
+      din = new BufferedReader(new InputStreamReader(ClientSocket.getInputStream()));
     }
 
     @Override
     public void run() {
       currentList = new ArrayList<>();
-      try {
-        String line = din.readLine();
 
-        while (DataValidator.is_valid(line)) {
+      try {
+        String line;
+        for (line = din.readLine(); DataValidator.is_valid(line); line = din.readLine()) {
           currentList.add(line);
-          //System.out.println(Thread.currentThread().getId() + ":" + line);
-          line = din.readLine();
         }
 
         if (DataValidator.is_terminate(line)) {
           shutdown_all();
         } else {
           process_client_data(currentList);
+          shutdown_client();
         }
-
-        shutdown_client();
       } catch (IOException e) {
         e.printStackTrace();
       }
-    }
-
-    private BufferedReader create_client_buffer_reader(Socket client) throws IOException {
-      ClientSocket = client;
-      return new BufferedReader(new InputStreamReader(ClientSocket.getInputStream()));
     }
 
     private void process_client_data(List<String> currentList) throws IOException {
@@ -85,12 +75,25 @@ public class DataServer {
     private void shutdown_client() throws IOException {
       din.close();
       ClientSocket.close();
-      --connections;
     }
   }
 
   private void shutdown_all() {
-    // TODO: terminate all connections
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      static final long SHUTDOWN_TIME = 1;
+
+      public void run() {
+        executor.shutdown();
+        try {
+          if (!executor.awaitTermination(SHUTDOWN_TIME, TimeUnit.SECONDS)) {
+            executor.shutdownNow();
+          }
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+
     status_updater.shutdown();
   }
 
