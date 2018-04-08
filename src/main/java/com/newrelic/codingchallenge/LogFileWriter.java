@@ -10,7 +10,7 @@ public class LogFileWriter {
     reset();
   }
 
-  public void reset() throws IOException {
+  private void reset() throws IOException {
     FileWriter fileWriter = new FileWriter(FILENAME);
     fileWriter.close();
   }
@@ -19,7 +19,6 @@ public class LogFileWriter {
     FileWriter fileWriter = new FileWriter(FILENAME, true);
     BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 
-    //synchornized
     for (Object value : content) {
       bufferedWriter.write(value.toString());
       bufferedWriter.newLine();

@@ -1,9 +1,7 @@
 package com.newrelic.codingchallenge;
 
-import java.util.concurrent.TimeUnit;
-
 public class StatusUpdater implements Runnable{
-  private static final long UPDATE_INTERVAL = 1000;
+  private static final long UPDATE_INTERVAL = 5000;
   private boolean terminate = false;
   private int total_unique = 0;
   private int total_new_duplicate = 0;

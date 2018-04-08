@@ -73,9 +73,10 @@ public class DataServer {
     private void process_client_data(List<String> currentList) throws IOException {
       Set<String> currentSet = new HashSet<>(currentList);
 
-      //sychronized
-      currentSet.removeAll(totalSet);
-      totalSet.addAll(currentSet);
+      synchronized (totalSet) {
+        currentSet.removeAll(totalSet);
+        totalSet.addAll(currentSet);
+      }
 
       log_writer.write(currentSet);
       status_updater.update_new(currentList.size() - currentSet.size(), currentSet.size());
