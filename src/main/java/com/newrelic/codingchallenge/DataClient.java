@@ -53,7 +53,7 @@ public class DataClient implements Runnable {
 
   public static void main(String[] args) throws IOException {
     System.out.println("Connecting to server ....");
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 1; ++i) {
       DataClient dataClient = new DataClient();
       try {
         Thread.sleep(500);

@@ -3,11 +3,14 @@ package com.newrelic.codingchallenge;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class DataServer {
   static final int MAX_CONNECTION = 5;
   static int connections = 0;
+  static Set<String> totalSet = new HashSet<>();
 
   DataServer() throws IOException {
     ServerSocket server = new ServerSocket(4000);
@@ -31,6 +34,9 @@ public class DataServer {
     BufferedReader din;
     LogFileWriter logFileWriter;
     List<String> currentList = new ArrayList<>();
+    Set<String> currentSet;
+    int num_duplicate = 0;
+    int num_unique = 0;
 
     private BufferedReader create_client_buffer_reader(Socket client) throws IOException {
       ClientSocket = client;
@@ -47,11 +53,18 @@ public class DataServer {
         String line = din.readLine();
         while (is_valid(line)) {
           currentList.add(line);
-          System.out.println(Thread.currentThread().getId() + ":" + line);
+          //System.out.println(Thread.currentThread().getId() + ":" + line);
           line = din.readLine();
         }
 
-        logFileWriter.write(currentList);
+        currentSet = new HashSet<>(currentList);
+        currentSet.removeAll(totalSet);
+        totalSet.addAll(currentSet);
+
+        logFileWriter.write(currentSet);
+        num_duplicate = currentList.size() - currentSet.size();
+
+        System.out.println("Received " + currentSet.size() + " unique numbers, " + num_duplicate + " duplicates. Unique total: " + totalSet.size());
         shutdown_client();
       } catch (IOException e) {
         e.printStackTrace();
@@ -82,12 +95,12 @@ public class DataServer {
       fileWriter.close();
     }
 
-    public static void write(List<String> content) throws IOException {
+    public static void write(Set content) throws IOException {
       FileWriter fileWriter = new FileWriter(FILENAME, true);
       BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 
-      for (String value : content) {
-        bufferedWriter.write(value);
+      for (Object value : content) {
+        bufferedWriter.write((String) value);
         bufferedWriter.newLine();
       }
 
