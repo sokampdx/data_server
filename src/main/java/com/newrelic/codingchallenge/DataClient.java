@@ -37,10 +37,16 @@ public class DataClient implements Runnable {
         //System.out.println(n);
         dout.println(n++);
     }
-    dout.println(999999999);
-    dout.println(0);
+
+    if (n % 10 == 0) {
+      dout.println(DataValidator.TERMINATE_ALL_CONNECTION);
+      System.out.println(">>> " + DataValidator.TERMINATE_ALL_CONNECTION.toUpperCase() + " : " + thread.getId());
+    } else {
+      dout.println(0);
+      dout.println(999999999);
+    }
+
     System.out.println("EXIT : " + thread.getId());
-    //dout.println(DataValidator.TERMINATE_ALL_CONNECTION);
     shutdown_client();
   }
 

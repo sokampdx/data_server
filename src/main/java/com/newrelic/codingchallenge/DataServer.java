@@ -8,10 +8,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 
 public class DataServer {
+  private static final int PORT = 4000;
   private static final int MAX_CONNECTION = 5;
   private static final ExecutorService executor = Executors.newFixedThreadPool(MAX_CONNECTION);
 
@@ -19,14 +18,19 @@ public class DataServer {
   private static LogFileWriter log_writer;
 
   private static final Set<String> totalSet = new HashSet<>();
+  private static Boolean shutdown = false;
 
   DataServer() throws IOException {
-    ServerSocket server = new ServerSocket(4000);
+    ServerSocket server = new ServerSocket(PORT);
     log_writer = new LogFileWriter();
 
-    while(true) {
+    while(!shutdown) {
       executor.execute(new AcceptClient(server.accept()));
     }
+
+    shutdown_all();
+    server.close();
+    System.exit(0);
   }
 
   private class AcceptClient implements Runnable {
@@ -50,7 +54,7 @@ public class DataServer {
         }
 
         if (DataValidator.is_terminate(line)) {
-          shutdown_all();
+          shutdown_server();
         } else {
           process_client_data(currentList);
           shutdown_client();
@@ -78,23 +82,13 @@ public class DataServer {
     }
   }
 
+  private void shutdown_server() {
+    shutdown = true;
+  }
+
   private void shutdown_all() {
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      static final long SHUTDOWN_TIME = 1;
-
-      public void run() {
-        executor.shutdown();
-        try {
-          if (!executor.awaitTermination(SHUTDOWN_TIME, TimeUnit.SECONDS)) {
-            executor.shutdownNow();
-          }
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-    });
-
     status_updater.shutdown();
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> executor.shutdown()));
   }
 
   public static void main(String[] args) throws IOException {
