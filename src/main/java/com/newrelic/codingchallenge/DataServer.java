@@ -20,7 +20,7 @@ public class DataServer {
   private static final Set<String> totalSet = new HashSet<>();
   private static Boolean shutdown = false;
 
-  DataServer() throws IOException {
+  private DataServer() throws IOException {
     ServerSocket server = new ServerSocket(PORT);
     log_writer = new LogFileWriter();
 

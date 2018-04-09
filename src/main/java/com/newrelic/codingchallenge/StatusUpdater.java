@@ -3,7 +3,7 @@ package com.newrelic.codingchallenge;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StatusUpdater implements Runnable{
-  private static final long UPDATE_INTERVAL = 5000;
+  private static final long UPDATE_INTERVAL = 10000;
   private boolean terminate = false;
 
   private AtomicInteger new_duplicate_counter = new AtomicInteger(0);
